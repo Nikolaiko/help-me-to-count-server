@@ -8,6 +8,7 @@
 import Foundation
 
 public enum AuthRequestError {
-    case invalidCredentials
     case wrongFormat
+    case validationError
+    case tokenExpired
 }

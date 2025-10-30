@@ -11,19 +11,23 @@ import Vapor
 extension AuthRequestError: AbortError {
     public var status: HTTPResponseStatus {
         switch self {
-        case .invalidCredentials:
-            return .notFound
         case .wrongFormat:
             return .badRequest
+        case .validationError:
+            return .badRequest
+        case .tokenExpired:
+            return .forbidden
         }
     }
 
     public var reason: String {
         switch self {
-        case .invalidCredentials:
-            return "Неправильный логин или пароль"
         case .wrongFormat:
+            return "Неправильный формат"
+        case .validationError:
             return "Неправильный формат данных"
+        case .tokenExpired:
+            return "Токен протух"
         }
     }
 }

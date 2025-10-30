@@ -11,25 +11,38 @@ import Vapor
 class LoginController: RouteCollection {
     func boot(routes: any Vapor.RoutesBuilder) throws {
         let authRoutes = routes.grouped("authorization")
-        authRoutes.group("login") { loginRoutes in
+
+        let loginRoute = authRoutes.grouped(DBUser.authenticator(), DBUser.guardMiddleware())
+        loginRoute.group("login") { loginRoutes in
             loginRoutes.post(use: login)
         }
-        authRoutes.group("rgister") { registerRoutes in
+
+        authRoutes.group("register") { registerRoutes in
             registerRoutes.post(use: register)
         }
     }
 
-    private func login(request: Request) throws -> AuthResponse {
-        guard let requestParameters = try? request.query.decode(AuthRequest.self) else {
-            throw AuthRequestError.wrongFormat
-        }
-        return AuthResponse(token: "57246542-96fe-1a63-e053-0824d011072a")
+    private func login(request: Request) async throws -> AuthResponse {
+        guard let user = try? request.auth.require(DBUser.self)
+        else { throw AuthRequestError.wrongFormat }
+        let payload = try SessionToken(with: user)
+        return AuthResponse(token: try await request.jwt.sign(payload))
     }
 
-    private func register(request: Request) throws -> AuthResponse {
-        guard let requestParameters = try? request.query.decode(AuthRequest.self) else {
-            throw AuthRequestError.wrongFormat
-        }
-        return AuthResponse(token: "57246542-96fe-1a63-e053-0824d011072a")
+    private func register(request: Request) async throws -> AuthResponse {
+        do { try DBUser.Create.validate(content: request) }
+        catch { throw AuthRequestError.validationError }
+        
+        guard let create = try? request.content.decode(DBUser.Create.self)
+        else { throw AuthRequestError.wrongFormat }
+
+        let user = try DBUser(
+            username: create.username,
+            passwordHash: Bcrypt.hash(create.password)
+        )
+        try await user.save(on: request.db)
+
+        let payload = try SessionToken(with: user)
+        return AuthResponse(token: try await request.jwt.sign(payload))
     }
 }
