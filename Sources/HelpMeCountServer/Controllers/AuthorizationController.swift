@@ -27,6 +27,9 @@ class AuthorizationController: RouteCollection {
 
         request.logger.log(level: .info, "\(user)")
 
+        let newUser = try DBUser(username: user.username, passwordHash: Bcrypt.hash(user.password))
+        newUser.save(on: request.db)
+
         return AuthResponse(token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6Yчне7k7-U8z!")
     }
 }
