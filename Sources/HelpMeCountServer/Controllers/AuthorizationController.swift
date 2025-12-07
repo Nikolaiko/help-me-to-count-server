@@ -12,24 +12,34 @@ class AuthorizationController: RouteCollection {
     func boot(routes: any Vapor.RoutesBuilder) throws {
 
         let authGroup = routes.grouped("authorization")
-        authGroup.post("login", use: loginRequest)
-        authGroup.post("register", use: registerRequest)
+        authGroup.grouped(DBUser.authenticator(), DBUser.guardMiddleware())
+            .post("login", use: loginRequest)
+
+
+        authGroup.grouped(UserRegistrationAuthenticator(), User.guardMiddleware())
+            .post("register", use: registerRequest)
     }
 
-    private func loginRequest(request: Request) throws -> String {
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6Yчне7k7-U8z!"
+    private func loginRequest(request: Request) async throws -> String {
+        let user = try request.auth.require(DBUser.self)
+        let token = try SessionToken(user: user)
+        let signed = try await request.jwt.sign(token)
+
+        request.logger.log(level: .info, "\(user)")
+        return signed
     }
 
-    private func registerRequest(request: Request) throws -> AuthResponse {
-        guard let data = request.body.data,
-              let user = try? JSONDecoder().decode(User.self, from: data)
-        else { throw  ServerErrors.noData }
+    private func registerRequest(request: Request) async throws -> AuthResponse {
+        let user = try request.auth.require(User.self)
 
         request.logger.log(level: .info, "\(user)")
 
         let newUser = try DBUser(username: user.username, passwordHash: Bcrypt.hash(user.password))
-        newUser.save(on: request.db)
+        try await newUser.save(on: request.db)
 
-        return AuthResponse(token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6Yчне7k7-U8z!")
+        let token = try SessionToken(user: newUser)
+        let signed = try await request.jwt.sign(token)
+
+        return AuthResponse(token: signed)
     }
 }

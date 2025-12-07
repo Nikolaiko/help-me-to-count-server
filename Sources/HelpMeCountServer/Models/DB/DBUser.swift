@@ -6,8 +6,9 @@
 //
 
 import Fluent
+import Vapor
 
-final class DBUser: Model, @unchecked Sendable {
+final class DBUser: Model, Content,  @unchecked Sendable {
     static let schema: String = "users"
 
     @ID(key: .id)

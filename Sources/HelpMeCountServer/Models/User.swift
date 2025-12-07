@@ -8,7 +8,7 @@
 import Foundation
 import Vapor
 
-struct User: Content {
+struct User: Content, Authenticatable {
     let username: String
     let password: String
 }

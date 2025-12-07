@@ -1,9 +1,13 @@
 import Vapor
 import Fluent
 import FluentPostgresDriver
+import JWT
 
 // configures your application
 public func configure(_ app: Application) async throws {
+
+    //JWT
+    await app.jwt.keys.add(hmac: "secret", digestAlgorithm: .sha256)
 
     let config = SQLPostgresConfiguration(
         hostname: "localhost",
