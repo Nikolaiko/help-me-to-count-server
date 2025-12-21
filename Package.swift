@@ -24,6 +24,9 @@ let package = Package(
         //DI
         .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.3.0"),
 
+        //Swift Configuration
+        .package(url: "https://github.com/apple/swift-configuration", from: "1.0.0"),
+
     ],
     targets: [
         .executableTarget(
@@ -43,6 +46,9 @@ let package = Package(
                 .product(name: "DBConfigurationProviderLive", package: "vapor-db-config-provider"),
                 .product(name: "Fluent", package: "fluent"),
                 .product(name: "FluentPostgresDriver", package: "fluent-postgres-driver"),
+
+                // Swift Configuration
+                .product(name: "Configuration", package: "swift-configuration")
             ],
             swiftSettings: swiftSettings
         ),

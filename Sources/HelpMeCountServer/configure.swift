@@ -4,12 +4,15 @@ import FluentPostgresDriver
 import JWT
 import DBConfigurationProvider
 import Dependencies
+import Configuration
 
 // configures your application
 public func configure(_ app: Application) async throws {
     @Dependency(\.configurationProvider) var configurationProvider: ConfigurationProvider
 
     await app.jwt.keys.add(hmac: "secret", digestAlgorithm: .sha256)
+
+    let reader = ConfigReader(provider: EnvironmentVariablesProvider())
 
     app.logger.logLevel = .debug
 
