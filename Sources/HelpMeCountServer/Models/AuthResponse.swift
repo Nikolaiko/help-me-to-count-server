@@ -10,4 +10,5 @@ import Vapor
 
 struct AuthResponse: Content {
     let token: String
+    let refreshToken: String
 }

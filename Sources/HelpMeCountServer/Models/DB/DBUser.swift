@@ -20,6 +20,9 @@ final class DBUser: Model, Content,  @unchecked Sendable {
     @Field(key: "password_hash")
     var passwordHash: String
 
+    @Children(for: \.$user)
+    var actions: [DBRepeatableAction]
+
     init() { }
 
     init(id: UUID? = nil, username: String, passwordHash: String) {

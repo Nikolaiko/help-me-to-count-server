@@ -12,21 +12,29 @@ class AuthorizationController: RouteCollection {
     func boot(routes: any Vapor.RoutesBuilder) throws {
 
         let authGroup = routes.grouped("authorization")
+
         authGroup.grouped(DBUser.authenticator(), DBUser.guardMiddleware())
             .post("login", use: loginRequest)
 
 
         authGroup.grouped(UserRegistrationAuthenticator(), User.guardMiddleware())
             .post("register", use: registerRequest)
+
+        authGroup.grouped(RefreshTokenAuthenticator(), RefreshToken.guardMiddleware())
+            .post("refresh", use: refresh)
     }
 
-    private func loginRequest(request: Request) async throws -> String {
+    private func loginRequest(request: Request) async throws -> AuthResponse {
         let user = try request.auth.require(DBUser.self)
-        let token = try SessionToken(user: user)
-        let signed = try await request.jwt.sign(token)
+
+        let sessionToken = try SessionToken(user: user)
+        let signedSessionToken = try await request.jwt.sign(sessionToken)
+
+        let refreshToken = try RefreshToken(user: user)
+        let signedRefreshToken = try await request.jwt.sign(refreshToken)
 
         request.logger.log(level: .info, "\(user)")
-        return signed
+        return AuthResponse(token: signedSessionToken, refreshToken: signedRefreshToken)
     }
 
     private func registerRequest(request: Request) async throws -> AuthResponse {
@@ -37,9 +45,25 @@ class AuthorizationController: RouteCollection {
         let newUser = try DBUser(username: user.username, passwordHash: Bcrypt.hash(user.password))
         try await newUser.save(on: request.db)
 
-        let token = try SessionToken(user: newUser)
-        let signed = try await request.jwt.sign(token)
+        let sessionToken = try SessionToken(user: newUser)
+        let signedSessionToken = try await request.jwt.sign(sessionToken)
 
-        return AuthResponse(token: signed)
+        let refreshToken = try RefreshToken(user: newUser)
+        let signedRefreshToken = try await request.jwt.sign(refreshToken)
+
+        return AuthResponse(token: signedSessionToken, refreshToken: signedRefreshToken)
+    }
+
+    private func refresh(request: Request) async throws -> AuthResponse {
+        let token = try request.auth.require(RefreshToken.self)
+        let userId = token.userId
+
+        let sessionToken = SessionToken(userId: userId)
+        let signedSessionToken = try await request.jwt.sign(sessionToken)
+
+        let refreshToken = RefreshToken(userId: userId)
+        let signedRefreshToken = try await request.jwt.sign(refreshToken)
+
+        return AuthResponse(token: signedSessionToken, refreshToken: signedRefreshToken)
     }
 }

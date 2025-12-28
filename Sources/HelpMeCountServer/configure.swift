@@ -21,6 +21,7 @@ public func configure(_ app: Application) async throws {
     app.databases.use(.postgres(configuration: config), as: .psql)
 
     app.migrations.add(AddUserSchema())
+    app.migrations.add(AddRepeatableActionSchema())
 
     try await app.autoMigrate()
 
